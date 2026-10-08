@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaxSense Review Portal — Secure Login</title>
+    <meta name="description" content="Secure login portal for Chartered Accountants and Tax Reviewers.">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Identity Services (GSI) -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <style>
+        :root {
+            --bg-primary:   #0a0f1e;
+            --bg-card:      #111827;
+            --bg-card2:     #1a2235;
+            --border:       #1e293b;
+            --border-focus: #6366f1;
+            --accent:       #6366f1;
+            --accent-hover: #4f46e5;
+            --accent-glow:  rgba(99,102,241,0.25);
+            --danger:       #ef4444;
+            --danger-glow:  rgba(239,68,68,0.2);
+            --success:      #22c55e;
+            --warning:      #f59e0b;
+            --text-1:       #f1f5f9;
+            --text-2:       #94a3b8;
+            --text-3:       #475569;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-1);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            position: relative;
+            padding: 20px 0;
+        }
+
+        /* Animated background grid */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(99,102,241,0.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(99,102,241,0.06) 1px, transparent 1px);
+            background-size: 50px 50px;
+            z-index: 0;
+            animation: gridMove 20s linear infinite;
+        }
+        @keyframes gridMove {
+            0%   { background-position: 0 0; }
+            100% { background-position: 50px 50px; }
+        }
+
+        /* Glow orbs */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.15;
+            z-index: 0;
+            animation: orbFloat 8s ease-in-out infinite alternate;
+        }
+        .orb-1 { width: 400px; height: 400px; background: #6366f1; top: -100px; right: -100px; animation-delay: 0s; }
+        .orb-2 { width: 300px; height: 300px; background: #a855f7; bottom: -50px; left: -80px; animation-delay: 3s; }
+        @keyframes orbFloat {
+            0%   { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(30px, -30px) scale(1.1); }
+        }
+
+        /* Main Login Card */
+        .login-wrapper {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 480px;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 36px 32px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(99,102,241,0.1);
+            animation: cardIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(30px) scale(0.96); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .brand-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .brand-icon-wrap {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 14px;
+            font-size: 28px;
+            box-shadow: 0 8px 24px rgba(99,102,241,0.4);
+        }
+        .brand-header h1 {
+            font-size: 23px;
+            font-weight: 700;
+            color: var(--text-1);
+            letter-spacing: -0.3px;
+        }
+        .brand-header p {
+            font-size: 13px;
+            color: var(--text-2);
+            margin-top: 4px;
+        }
+
+        /* Security badge */
+        .security-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(99,102,241,0.08);
+            border: 1px solid rgba(99,102,241,0.2);
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-bottom: 20px;
+            font-size: 12px;
+            color: var(--text-2);
+        }
+        .security-badge i { color: var(--accent); }
+
+        /* Form Controls */
+        .form-group {
+            margin-bottom: 16px;
+            text-align: left;
+        }
+        .form-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-2);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .input-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .input-wrap i.prefix-icon {
+            position: absolute;
+            left: 14px;
+            color: var(--text-3);
+            font-size: 14px;
+            pointer-events: none;
+        }
+        .form-input {
+            width: 100%;
+            background: var(--bg-card2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 14px 12px 40px;
+            color: var(--text-1);
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .form-input:focus {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        .toggle-pw-btn {
+            position: absolute;
+            right: 12px;
+            background: none;
+            border: none;
+            color: var(--text-3);
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .toggle-pw-btn:hover { color: var(--text-2); }
+
+        /* Primary Submit Button */
+        .primary-btn {
+            width: 100%;
+            background: linear-gradient(135deg, var(--accent), #4f46e5);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 13px;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 16px rgba(99,102,241,0.35);
+            margin-top: 6px;
+            margin-bottom: 18px;
+        }
+        .primary-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99,102,241,0.45);
+        }
+        .primary-btn:active { transform: translateY(0); }
+        .primary-btn.loading {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Quick Demo / Preset Logins */
+        .quick-presets {
+            background: rgba(255,255,255,0.02);
+            border: 1px dashed var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 20px;
+        }
+        .quick-title {
+            font-size: 11px;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            text-align: center;
+            font-weight: 600;
+        }
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .preset-btn {
+            background: var(--bg-card2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 12px;
+            color: var(--text-2);
+            font-family: inherit;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .preset-btn:hover {
+            background: rgba(99,102,241,0.12);
+            border-color: var(--accent);
+            color: var(--text-1);
+        }
+
+        /* Google Sign-in Button */
+        .google-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            background: #fff;
+            color: #1f2937;
+            border: none;
+            border-radius: 12px;
+            padding: 11px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: 'Outfit', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .google-btn:hover {
+            background: #f8fafc;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+        }
+        .google-btn:active { transform: translateY(0); }
+        .google-btn img { width: 18px; height: 18px; }
+
+        /* Divider */
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 18px 0;
+            color: var(--text-3);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* Footer note */
+        .footer-note {
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-3);
+            line-height: 1.5;
+            margin-top: 18px;
+        }
+
+        /* =========================================================
+           ACCESS DENIED PANEL
+        ========================================================= */
+        .denied-panel {
+            display: none;
+            animation: cardIn 0.5s ease both;
+        }
+
+        .denied-icon-wrap {
+            width: 64px;
+            height: 64px;
+            background: rgba(239,68,68,0.12);
+            border: 2px solid rgba(239,68,68,0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            font-size: 26px;
+            color: var(--danger);
+            animation: shake 0.5s ease both;
+        }
+        @keyframes shake {
+            0%,100% { transform: translateX(0); }
+            20%      { transform: translateX(-8px); }
+            40%      { transform: translateX(8px); }
+            60%      { transform: translateX(-5px); }
+            80%      { transform: translateX(5px); }
+        }
+
+        .denied-panel h2 {
+            text-align: center;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--danger);
+            margin-bottom: 6px;
+        }
+        .denied-panel p {
+            text-align: center;
+            color: var(--text-2);
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+        .denied-email-box {
+            background: rgba(239,68,68,0.06);
+            border: 1px solid rgba(239,68,68,0.2);
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-bottom: 18px;
+            font-size: 12px;
+            color: var(--text-2);
+        }
+        .denied-email-box span { color: var(--danger); font-weight: 600; }
+
+        .request-btn {
+            width: 100%;
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.3);
+            color: var(--danger);
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 10px;
+        }
+        .request-btn:hover { background: rgba(239,68,68,0.18); }
+        .request-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .back-btn {
+            width: 100%;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-2);
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .back-btn:hover { background: var(--bg-card2); color: var(--text-1); }
+
+        .request-sent {
+            display: none;
+            text-align: center;
+            background: rgba(34,197,94,0.08);
+            border: 1px solid rgba(34,197,94,0.2);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            color: var(--success);
+        }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--bg-card2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 20px;
+            font-size: 13px;
+            color: var(--text-1);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            z-index: 999;
+            transform: translateY(80px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            max-width: 360px;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.error  { border-color: rgba(239,68,68,0.5); background: #1c131d; color: #fca5a5; }
+        .toast.success { border-color: rgba(34,197,94,0.5); background: #0f231c; color: #86efac; }
+        .toast.info { border-color: rgba(99,102,241,0.5); background: #14172e; color: #c7d2fe; }
+    </style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="login-wrapper">
+    <div class="login-card">
+
+        <!-- ── LOGIN PANEL ── -->
+        <div id="login-panel">
+            <div class="brand-header">
+                <div class="brand-icon-wrap">
+                    <i class="fa-solid fa-scale-balanced" style="color:#fff;"></i>
+                </div>
+                <h1>TaxSense Review Portal</h1>
+                <p>Chartered Accountant &amp; Audit Workspace</p>
+            </div>
+
+            <div class="security-badge">
+                <i class="fa-solid fa-shield-halved"></i>
+                <span>Direct CA Reviewer Login &amp; Workspace Access</span>
+            </div>
+
+            <!-- Direct CA Credentials Form -->
+            <form id="ca-login-form" onsubmit="handleLocalLogin(event)">
+                <div class="form-group">
+                    <label class="form-label" for="login-email">Reviewer Email / ID</label>
+                    <div class="input-wrap">
+                        <i class="fa-solid fa-envelope prefix-icon"></i>
+                        <input type="email" id="login-email" class="form-input" value="ca@taxsense.in" required autocomplete="username" placeholder="ca@taxsense.in">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="login-password">Access Password</label>
+                    <div class="input-wrap">
+                        <i class="fa-solid fa-lock prefix-icon"></i>
+                        <input type="password" id="login-password" class="form-input" value="admin" required autocomplete="current-password" placeholder="Enter password">
+                        <button type="button" class="toggle-pw-btn" onclick="togglePasswordVisibility()" title="Toggle visibility">
+                            <i class="fa-solid fa-eye" id="pw-eye-icon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="primary-btn" id="btn-login-submit">
+                    <i class="fa-solid fa-right-to-bracket"></i> Sign In to Review Portal
+                </button>
+            </form>
+
+            <!-- Quick 1-Click CA Profiles -->
+            <div class="quick-presets">
+                <div class="quick-title"><i class="fa-solid fa-bolt"></i> 1-Click Fast Login Presets</div>
+                <div class="preset-buttons">
+                    <button type="button" class="preset-btn" onclick="quickLogin('ca@taxsense.in', 'admin', 'CA Reviewer')">
+                        <i class="fa-solid fa-user-check" style="color:var(--accent);"></i> CA Reviewer
+                    </button>
+                    <button type="button" class="preset-btn" onclick="quickLogin('admin@taxsense.in', 'admin', 'Senior Partner')">
+                        <i class="fa-solid fa-user-tie" style="color:#a855f7;"></i> Senior Partner
+                    </button>
+                </div>
+            </div>
+
+            <div class="divider">or continue with</div>
+
+            <!-- Google Sign-in Button -->
+            <button type="button" class="google-btn" id="google-login-btn" onclick="triggerGoogleLogin()">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+                Sign in with Google
+            </button>
+
+            <p class="footer-note">
+                Encrypted CA audit session. Default local password is <code style="color:var(--accent);background:rgba(99,102,241,0.1);padding:2px 5px;border-radius:4px;">admin</code>.
+            </p>
+        </div>
+
+        <!-- ── ACCESS DENIED PANEL ── -->
+        <div class="denied-panel" id="denied-panel">
+            <div class="denied-icon-wrap">
+                <i class="fa-solid fa-ban"></i>
+            </div>
+            <h2>Access Denied</h2>
+            <p>Your Google account is not on the authorised whitelist. The administrator has been notified of this attempt.</p>
+
+            <div class="denied-email-box" id="denied-email-box">
+                Attempted with: <span id="denied-email-text">—</span>
+            </div>
+
+            <div class="request-sent" id="request-sent-msg">
+                <i class="fa-solid fa-circle-check"></i>
+                Access request sent! The administrator will review it shortly.
+            </div>
+
+            <button class="request-btn" id="request-btn" onclick="requestAccess()">
+                <i class="fa-solid fa-paper-plane"></i> Request Access
+            </button>
+            <button class="back-btn" onclick="goBack()">
+                <i class="fa-solid fa-arrow-left"></i> Return to Login
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Hidden Google One Tap config -->
+<div id="g_id_onload"
+     data-client_id="YOUR_GOOGLE_CLIENT_ID"
+     data-callback="handleGoogleCredential"
+     data-auto_prompt="false">
+</div>
+
+<script>
+// ============================================================
+// CONFIGURATION
+// ============================================================
+const BACKEND_URL = window.location.origin.includes("http") ? window.location.origin : "http://127.0.0.1:8000";
+
+let deniedUserEmail = "";
+let deniedUserName  = "";
+
+// ============================================================
+// Password Toggle
+// ============================================================
+function togglePasswordVisibility() {
+    const pwInput = document.getElementById("login-password");
+    const eyeIcon = document.getElementById("pw-eye-icon");
+    if (pwInput.type === "password") {
+        pwInput.type = "text";
+        eyeIcon.classList.replace("fa-eye", "fa-eye-slash");
+    } else {
+        pwInput.type = "password";
+        eyeIcon.classList.replace("fa-eye-slash", "fa-eye");
+    }
+}
+
+// ============================================================
+// Local CA Reviewer Login
+// ============================================================
+async function handleLocalLogin(event) {
+    if (event) event.preventDefault();
+    const email = document.getElementById("login-email").value.trim();
+    const password = document.getElementById("login-password").value.trim();
+    const btn = document.getElementById("btn-login-submit");
+
+    if (!email || !password) {
+        showToast("Please enter both email and password.", "error");
+        return;
+    }
+
+    btn.classList.add("loading");
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Authenticating...`;
+
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: email, password: password })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.status === "granted") {
+            sessionStorage.setItem("ca_user_email", data.email);
+            sessionStorage.setItem("ca_user_name",  data.name);
+            sessionStorage.setItem("ca_auth_token",  data.token || "ca-auth-session");
+            showToast(`Welcome back, ${data.name}! Opening dashboard...`, "success");
+            setTimeout(() => { window.location.href = "index.html"; }, 800);
+        } else {
+            const msg = data.detail?.message || "Invalid credentials. Use 'admin' as the password.";
+            showToast(msg, "error");
+            btn.classList.remove("loading");
+            btn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> Sign In to Review Portal`;
+        }
+    } catch (err) {
+        console.error(err);
+        showToast("Cannot connect to server. Is the FastAPI backend running?", "error");
+        btn.classList.remove("loading");
+        btn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> Sign In to Review Portal`;
+    }
+}
+
+// ============================================================
+// 1-Click Fast Login
+// ============================================================
+function quickLogin(email, password, name) {
+    document.getElementById("login-email").value = email;
+    document.getElementById("login-password").value = password;
+    handleLocalLogin();
+}
+
+// ============================================================
+// Google OAuth Login
+// ============================================================
+function triggerGoogleLogin() {
+    const clientId = document.getElementById("g_id_onload").dataset.clientId;
+    if (!clientId || clientId === "YOUR_GOOGLE_CLIENT_ID") {
+        showToast("Google OAuth is not configured with a Client ID yet. Please use Direct CA Login above (Password: admin).", "info");
+        return;
+    }
+
+    if (typeof google === "undefined" || !google.accounts || !google.accounts.id) {
+        showToast("Google Identity library not loaded. Check internet connection.", "error");
+        return;
+    }
+
+    google.accounts.id.initialize({
+        client_id: clientId,
+        callback: handleGoogleCredential
+    });
+    google.accounts.id.prompt();
+}
+
+async function handleGoogleCredential(response) {
+    const btn = document.getElementById("google-login-btn");
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Verifying...`;
+
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/auth/google`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: response.credential })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.status === "granted") {
+            sessionStorage.setItem("ca_user_email", data.email);
+            sessionStorage.setItem("ca_user_name",  data.name);
+            sessionStorage.setItem("ca_auth_token",  response.credential);
+            showToast(`Welcome, ${data.name}!`, "success");
+            setTimeout(() => { window.location.href = "index.html"; }, 800);
+        } else {
+            const detail = data.detail || {};
+            deniedUserEmail = detail.email || "unknown";
+            deniedUserName  = detail.name  || "Unknown";
+            showDenied(deniedUserEmail);
+        }
+    } catch (err) {
+        showToast("Connection error. Is backend running?", "error");
+        btn.innerHTML = `<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"> Sign in with Google`;
+    }
+}
+
+// ============================================================
+// Access Denied UI
+// ============================================================
+function showDenied(email) {
+    document.getElementById("login-panel").style.display = "none";
+    document.getElementById("denied-panel").style.display = "block";
+    document.getElementById("denied-email-text").textContent = email;
+}
+
+function goBack() {
+    document.getElementById("denied-panel").style.display = "none";
+    document.getElementById("login-panel").style.display = "block";
+    const btn = document.getElementById("google-login-btn");
+    btn.innerHTML = `<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"> Sign in with Google`;
+    document.getElementById("request-sent-msg").style.display = "none";
+    document.getElementById("request-btn").disabled = false;
+    document.getElementById("request-btn").innerHTML = `<i class="fa-solid fa-paper-plane"></i> Request Access`;
+}
+
+async function requestAccess() {
+    const btn = document.getElementById("request-btn");
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Sending...`;
+
+    try {
+        await fetch(`${BACKEND_URL}/api/auth/request-access`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: deniedUserEmail, name: deniedUserName })
+        });
+    } catch(e) { }
+
+    document.getElementById("request-sent-msg").style.display = "block";
+    btn.innerHTML = `<i class="fa-solid fa-check"></i> Request Sent`;
+    showToast("Your request has been sent to the administrator.", "success");
+}
+
+function showToast(msg, type = "info") {
+    const toast = document.getElementById("toast");
+    toast.textContent = msg;
+    toast.className = `toast show ${type}`;
+    setTimeout(() => { toast.className = "toast"; }, 4500);
+}
+</script>
+</body>
+</html>

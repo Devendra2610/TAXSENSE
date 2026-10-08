@@ -1,0 +1,18 @@
+[
+  {
+    "timestamp": "2026-08-16T14:05:50.160122",
+    "email": "ca@taxsense.in",
+    "name": "CA Reviewer",
+    "allowed": true,
+    "ip": "testclient",
+    "status": "GRANTED"
+  },
+  {
+    "timestamp": "2026-08-15T23:06:13.317377",
+    "email": "ca@taxsense.in",
+    "name": "CA Reviewer",
+    "allowed": true,
+    "ip": "127.0.0.1",
+    "status": "GRANTED"
+  }
+]
